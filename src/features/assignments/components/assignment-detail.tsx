@@ -1,5 +1,6 @@
-'use client';
+"use client";
 
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -85,6 +86,15 @@ export const AssignmentDetailComponent = ({ assignment }: AssignmentDetailProps)
     <div className="space-y-6">
       {/* Assignment Info */}
       <Card>
+        <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
+          <Image
+            alt={`${assignment.title} cover`}
+            src={`https://picsum.photos/seed/lms-assignment-${assignment.id}/1200/420`}
+            width={1200}
+            height={420}
+            className="h-full w-full object-cover"
+          />
+        </div>
         <CardHeader>
           <div className="mb-2 flex flex-wrap gap-2">
             <Badge variant="outline">{assignment.status}</Badge>

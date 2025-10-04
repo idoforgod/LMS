@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { CourseDetail } from '@/features/courses/lib/dto';
@@ -13,6 +14,15 @@ export const CourseCard = ({ course }: CourseCardProps) => {
   return (
     <Link href={`/courses/${course.id}`} className="block">
       <Card className="h-full transition-shadow hover:shadow-md">
+        <div className="relative h-40 w-full overflow-hidden rounded-t-lg">
+          <Image
+            alt={`${course.title} thumbnail`}
+            src={`https://picsum.photos/seed/lms-course-${course.id}/640/360`}
+            width={640}
+            height={360}
+            className="h-full w-full object-cover"
+          />
+        </div>
         <CardHeader>
           <div className="mb-2 flex flex-wrap gap-2">
             {course.category && (

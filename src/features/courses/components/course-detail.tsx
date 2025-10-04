@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -82,6 +83,15 @@ export const CourseDetail = ({
   return (
     <div className="space-y-6">
       <Card>
+        <div className="relative h-56 w-full overflow-hidden rounded-t-lg">
+          <Image
+            alt={`${course.title} cover`}
+            src={`https://picsum.photos/seed/lms-course-cover-${course.id}/1200/480`}
+            width={1200}
+            height={480}
+            className="h-full w-full object-cover"
+          />
+        </div>
         <CardHeader>
           <div className="mb-3 flex flex-wrap gap-2">
             {course.category && (
