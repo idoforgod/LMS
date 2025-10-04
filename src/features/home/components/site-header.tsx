@@ -17,6 +17,8 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export const SiteHeader = () => {
   const { user, isAuthenticated, isLoading, refresh } = useCurrentUser();
@@ -94,9 +96,19 @@ export const SiteHeader = () => {
           <span className="text-slate-500">세션 확인 중…</span>
         ) : isAuthenticated ? (
           <div className="flex items-center gap-3">
-            <span className="hidden truncate text-slate-600 md:inline-block">
-              {user?.email ?? '사용자'}
-            </span>
+            {isInstructor ? (
+              <Badge>instructor</Badge>
+            ) : isLearner ? (
+              <Badge variant="secondary">learner</Badge>
+            ) : null}
+            <div className="hidden items-center gap-2 md:flex">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback>
+                  {(user?.email?.[0] ?? 'U').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="truncate text-slate-600">{user?.email ?? '사용자'}</span>
+            </div>
             <button
               type="button"
               onClick={handleSignOut}
