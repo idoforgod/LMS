@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { LogOut } from 'lucide-react';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { useInstructorDashboard } from '@/features/instructor-dashboard/hooks/useInstructorDashboard';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 
 export const SiteHeader = () => {
   const { user, isAuthenticated, isLoading, refresh } = useCurrentUser();
+  const { data: instructorData, error: instructorError } = useInstructorDashboard({ limit: 1 });
+  const isInstructor = !!instructorData && !instructorError;
   const router = useRouter();
 
   const handleSignOut = useCallback(async () => {
@@ -28,9 +31,21 @@ export const SiteHeader = () => {
           코스 카탈로그
         </Link>
         {isAuthenticated && (
-          <Link href="/dashboard" className="text-slate-700 hover:text-slate-900">
-            대시보드
-          </Link>
+          <>
+            <Link href="/dashboard" className="text-slate-700 hover:text-slate-900">
+              대시보드
+            </Link>
+            {isInstructor && (
+              <>
+                <Link href="/instructor/dashboard" className="text-slate-700 hover:text-slate-900">
+                  강사 대시보드
+                </Link>
+                <Link href="/instructor/courses" className="text-slate-700 hover:text-slate-900">
+                  코스 관리
+                </Link>
+              </>
+            )}
+          </>
         )}
         {isLoading ? (
           <span className="text-slate-500">세션 확인 중…</span>
@@ -61,4 +76,3 @@ export const SiteHeader = () => {
     </header>
   );
 };
-
