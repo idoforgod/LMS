@@ -1,0 +1,3 @@
+export const DEFAULT_IMMINENT_HOURS = 72;
+export const DEFAULT_FEEDBACK_LIMIT = 5;
+

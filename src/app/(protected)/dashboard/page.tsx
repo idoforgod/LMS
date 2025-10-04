@@ -2,6 +2,14 @@
 
 import Image from "next/image";
 import { useCurrentUser } from "@/features/auth/hooks/useCurrentUser";
+import { useDashboardSummary } from "@/features/dashboard/hooks/useDashboardSummary";
+import type { DashboardSummary } from "@/features/dashboard/lib/dto";
+import { DashboardSummary as SummaryCard } from "@/features/dashboard/components/dashboard-summary";
+import { MyCoursesList } from "@/features/dashboard/components/my-courses-list";
+import { ImminentAssignments } from "@/features/dashboard/components/imminent-assignments";
+import { RecentFeedback } from "@/features/dashboard/components/recent-feedback";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 type DashboardPageProps = {
   params: Promise<Record<string, never>>;
@@ -10,6 +18,15 @@ type DashboardPageProps = {
 export default function DashboardPage({ params }: DashboardPageProps) {
   void params;
   const { user } = useCurrentUser();
+  const { toast } = useToast();
+
+  const { data, isLoading, error } = useDashboardSummary();
+
+  useEffect(() => {
+    if (error) {
+      toast({ title: "대시보드 오류", description: (error as Error).message });
+    }
+  }, [error, toast]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-12">
@@ -29,19 +46,56 @@ export default function DashboardPage({ params }: DashboardPageProps) {
         />
       </div>
       <section className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-lg border border-slate-200 p-4">
-          <h2 className="text-lg font-medium">현재 세션</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Supabase 미들웨어가 세션 쿠키를 자동으로 동기화합니다.
-          </p>
-        </article>
-        <article className="rounded-lg border border-slate-200 p-4">
-          <h2 className="text-lg font-medium">보안 체크</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            보호된 App Router 세그먼트로 라우팅되며, 로그인 사용
-            자만 접근할 수 있습니다.
-          </p>
-        </article>
+        {isLoading ? (
+          <article className="rounded-lg border border-slate-200 p-4">
+            <div className="h-5 w-32 animate-pulse rounded bg-slate-200" />
+            <div className="mt-3 h-2 w-full animate-pulse rounded bg-slate-200" />
+          </article>
+        ) : (
+          <SummaryCard
+            totalCourses={data ? data.myCourses.length : 0}
+            averageProgress={
+              data && data.myCourses.length > 0
+                ? data.myCourses.reduce((acc, c) => acc + c.progress, 0) / data.myCourses.length
+                : 0
+            }
+          />
+        )}
+        {isLoading ? (
+          <article className="rounded-lg border border-slate-200 p-4">
+            <div className="h-5 w-28 animate-pulse rounded bg-slate-200" />
+            <div className="mt-3 h-24 w-full animate-pulse rounded bg-slate-200" />
+          </article>
+        ) : (
+          (() => {
+            const items: DashboardSummary['imminentAssignments'] = data?.imminentAssignments ?? [];
+            return <ImminentAssignments items={items} />;
+          })()
+        )}
+      </section>
+      <section className="grid gap-4 md:grid-cols-2">
+        {isLoading ? (
+          <article className="rounded-lg border border-slate-200 p-4">
+            <div className="h-5 w-24 animate-pulse rounded bg-slate-200" />
+            <div className="mt-3 h-24 w-full animate-pulse rounded bg-slate-200" />
+          </article>
+        ) : (
+          (() => {
+            const items: DashboardSummary['myCourses'] = data?.myCourses ?? [];
+            return <MyCoursesList items={items} />;
+          })()
+        )}
+        {isLoading ? (
+          <article className="rounded-lg border border-slate-200 p-4">
+            <div className="h-5 w-24 animate-pulse rounded bg-slate-200" />
+            <div className="mt-3 h-24 w-full animate-pulse rounded bg-slate-200" />
+          </article>
+        ) : (
+          (() => {
+            const items: DashboardSummary['recentFeedback'] = data?.recentFeedback ?? [];
+            return <RecentFeedback items={items} />;
+          })()
+        )}
       </section>
     </div>
   );
