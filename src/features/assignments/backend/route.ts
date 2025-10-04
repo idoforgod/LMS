@@ -1,62 +1,77 @@
 import type { Hono } from 'hono';
-import type { AppEnv } from '@/backend/hono/context';
+import { failure, respond } from '@/backend/http/response';
+import { getLogger, getSupabase, type AppEnv } from '@/backend/hono/context';
 import { getCourseAssignments, getAssignmentDetail } from './service';
 import { assignmentErrorCodes } from './error';
-import { AssignmentListResponseSchema, AssignmentDetailSchema } from './schema';
 
 export const registerAssignmentRoutes = (app: Hono<AppEnv>) => {
-  // GET /api/courses/:courseId/assignments - List assignments
+  // GET /api/courses/:courseId/assignments - List assignments (auth required)
   app.get('/api/courses/:courseId/assignments', async (c) => {
-    const userId = c.get('userId');
-    if (!userId) {
-      return c.json({ error: assignmentErrorCodes.unauthorized }, 401);
-    }
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
 
-    const courseId = parseInt(c.req.param('courseId'), 10);
+    const courseIdParam = c.req.param('courseId');
+    const courseId = parseInt(courseIdParam, 10);
     if (isNaN(courseId)) {
-      return c.json({ error: 'Invalid course ID' }, 400);
+      return respond(
+        c,
+        failure(400, assignmentErrorCodes.validationError ?? 'VALIDATION_ERROR', 'Invalid course ID'),
+      );
     }
 
-    const client = c.get('supabaseClient');
-    const result = await getCourseAssignments(client, courseId, userId);
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return respond(c, failure(401, assignmentErrorCodes.unauthorized, 'Unauthorized'));
+    }
+    const token = authHeader.substring(7);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
 
-    if (!result.success) {
-      if (result.error === assignmentErrorCodes.notEnrolled) {
-        return c.json({ error: result.error }, 403);
-      }
-      return c.json({ error: result.error }, 500);
+    if (authError || !user) {
+      return respond(c, failure(401, assignmentErrorCodes.unauthorized, 'Unauthorized'));
     }
 
-    const validated = AssignmentListResponseSchema.parse(result.data);
-    return c.json(validated);
+    const result = await getCourseAssignments(supabase, courseId, user.id);
+    if (!result.ok) {
+      logger.error('Failed to fetch assignments', JSON.stringify(result));
+    }
+    return respond(c, result);
   });
 
-  // GET /api/assignments/:id - Assignment detail
+  // GET /api/assignments/:id - Assignment detail (auth required)
   app.get('/api/assignments/:id', async (c) => {
-    const userId = c.get('userId');
-    if (!userId) {
-      return c.json({ error: assignmentErrorCodes.unauthorized }, 401);
-    }
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
 
-    const assignmentId = parseInt(c.req.param('id'), 10);
+    const assignmentIdParam = c.req.param('id');
+    const assignmentId = parseInt(assignmentIdParam, 10);
     if (isNaN(assignmentId)) {
-      return c.json({ error: 'Invalid assignment ID' }, 400);
+      return respond(
+        c,
+        failure(400, assignmentErrorCodes.validationError ?? 'VALIDATION_ERROR', 'Invalid assignment ID'),
+      );
     }
 
-    const client = c.get('supabaseClient');
-    const result = await getAssignmentDetail(client, assignmentId, userId);
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return respond(c, failure(401, assignmentErrorCodes.unauthorized, 'Unauthorized'));
+    }
+    const token = authHeader.substring(7);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
 
-    if (!result.success) {
-      if (result.error === assignmentErrorCodes.notFound) {
-        return c.json({ error: result.error }, 404);
-      }
-      if (result.error === assignmentErrorCodes.notPublished || result.error === assignmentErrorCodes.notEnrolled) {
-        return c.json({ error: result.error }, 403);
-      }
-      return c.json({ error: result.error }, 500);
+    if (authError || !user) {
+      return respond(c, failure(401, assignmentErrorCodes.unauthorized, 'Unauthorized'));
     }
 
-    const validated = AssignmentDetailSchema.parse(result.data);
-    return c.json(validated);
+    const result = await getAssignmentDetail(supabase, assignmentId, user.id);
+    if (!result.ok) {
+      logger.error('Failed to fetch assignment detail', JSON.stringify(result));
+    }
+    return respond(c, result);
   });
 };

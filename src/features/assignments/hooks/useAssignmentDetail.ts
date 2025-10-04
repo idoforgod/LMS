@@ -11,7 +11,12 @@ const fetchAssignmentDetail = async (
   assignmentId: number,
 ): Promise<AssignmentDetail> => {
   try {
-    const { data } = await apiClient.get(`/api/assignments/${assignmentId}`);
+    let headers: Record<string, string> | undefined;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth_token');
+      if (token) headers = { Authorization: `Bearer ${token}` };
+    }
+    const { data } = await apiClient.get(`/api/assignments/${assignmentId}`, { headers });
     return AssignmentDetailSchema.parse(data);
   } catch (error) {
     const message = extractApiErrorMessage(error, 'Failed to fetch assignment detail');

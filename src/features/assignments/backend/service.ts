@@ -19,7 +19,6 @@ export const getCourseAssignments = async (
     .select('id')
     .eq('course_id', courseId)
     .eq('user_id', userId)
-    .eq('status', 'active')
     .single();
 
   if (enrollmentError || !enrollment) {
@@ -106,20 +105,12 @@ export const getAssignmentDetail = async (
     .single();
 
   if (assignmentError || !assignment) {
-    return {
-      success: false,
-      error: assignmentErrorCodes.notFound,
-      details: assignmentError,
-    };
+    return failure(404, assignmentErrorCodes.notFound, 'Assignment not found', assignmentError);
   }
 
   // 2. Verify assignment is published
   if (assignment.status !== 'published') {
-    return {
-      success: false,
-      error: assignmentErrorCodes.notPublished,
-      details: null,
-    };
+    return failure(403, assignmentErrorCodes.notPublished, 'Assignment is not published');
   }
 
   // 3. Verify user is enrolled in course
@@ -128,15 +119,10 @@ export const getAssignmentDetail = async (
     .select('id')
     .eq('course_id', assignment.course_id)
     .eq('user_id', userId)
-    .eq('status', 'active')
     .single();
 
   if (enrollmentError || !enrollment) {
-    return {
-      success: false,
-      error: assignmentErrorCodes.notEnrolled,
-      details: enrollmentError,
-    };
+    return failure(403, assignmentErrorCodes.notEnrolled, 'You must be enrolled in this course', enrollmentError);
   }
 
   // 4. Fetch user's submission (if exists)
@@ -151,31 +137,30 @@ export const getAssignmentDetail = async (
   const submissionData = submissionError ? null : submission;
 
   // 5. Return assignment with submission data
-  return {
-    success: true,
-    data: {
-      id: assignment.id,
-      courseId: assignment.course_id,
-      title: assignment.title,
-      description: assignment.description,
-      dueDate: assignment.due_date,
-      weight: assignment.weight,
-      allowLate: assignment.allow_late,
-      allowResubmission: assignment.allow_resubmission,
-      status: assignment.status as 'draft' | 'published' | 'closed',
-      createdAt: assignment.created_at,
-      updatedAt: assignment.updated_at,
-      submission: submissionData ? {
-        id: submissionData.id,
-        content: submissionData.content,
-        link: submissionData.link,
-        status: submissionData.status as 'submitted' | 'graded' | 'resubmission_required',
-        isLate: submissionData.is_late,
-        score: submissionData.score,
-        feedback: submissionData.feedback,
-        submittedAt: submissionData.submitted_at,
-        gradedAt: submissionData.graded_at,
-      } : null,
-    },
-  };
+  return success({
+    id: assignment.id,
+    courseId: assignment.course_id,
+    title: assignment.title,
+    description: assignment.description,
+    dueDate: assignment.due_date,
+    weight: assignment.weight,
+    allowLate: assignment.allow_late,
+    allowResubmission: assignment.allow_resubmission,
+    status: assignment.status as 'draft' | 'published' | 'closed',
+    createdAt: assignment.created_at,
+    updatedAt: assignment.updated_at,
+    submission: submissionData
+      ? {
+          id: submissionData.id,
+          content: submissionData.content,
+          link: submissionData.link,
+          status: submissionData.status as 'submitted' | 'graded' | 'resubmission_required',
+          isLate: submissionData.is_late,
+          score: submissionData.score,
+          feedback: submissionData.feedback,
+          submittedAt: submissionData.submitted_at,
+          gradedAt: submissionData.graded_at,
+        }
+      : null,
+  });
 };

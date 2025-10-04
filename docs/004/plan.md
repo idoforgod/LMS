@@ -48,6 +48,8 @@ graph TB
 
         F --> H[Assignment DTO]
         G --> H
+        F --> W[apiClient]
+        G --> W
 
         D --> I[Submission State Calculator]
         D --> J[Date Utilities]
@@ -83,11 +85,18 @@ graph TB
     style I fill:#fff4e1
     style J fill:#fff4e1
     style H fill:#f0f0f0
+    style W fill:#f0f0f0
 ```
 
 ---
 
 ## Implementation Plan
+
+### Conformance Notes (AGENTS.md)
+- 모든 페이지/컴포넌트는 `"use client"` 적용, `page.tsx`의 `params`는 `Promise` 타입을 사용한다.
+- 모든 FE 훅의 HTTP 요청은 `@/lib/remote/api-client`를 경유하고, 서버 상태는 `@tanstack/react-query`로 관리한다.
+- 요청/응답 스키마는 `zod`로 검증하고, 백엔드 스키마를 `lib/dto.ts`에서 재노출해 타입을 공유한다.
+- 날짜/시간은 `date-fns`로 처리하고, UI는 `shadcn-ui` 컴포넌트를 사용한다.
 
 ### Phase 1: Shared Utilities
 
@@ -480,6 +489,7 @@ npx shadcn@latest add textarea
 
 **QA Sheet**:
 - [ ] Loads assignments for course from route params
+- [ ] Uses `"use client"` and `params: Promise<{ courseId }>`
 - [ ] Shows course title in header
 - [ ] Displays assignment list component
 - [ ] Back button navigates to my courses
@@ -497,6 +507,7 @@ npx shadcn@latest add textarea
 
 **QA Sheet**:
 - [ ] Fetches assignment detail from route params
+- [ ] Uses `"use client"` and `params: Promise<{ courseId; assignmentId }>`
 - [ ] Shows assignment detail component
 - [ ] Back button navigates to assignment list
 - [ ] Shows 404 if assignment not found
@@ -504,6 +515,7 @@ npx shadcn@latest add textarea
 - [ ] Breadcrumb navigation (Course > Assignments > Assignment Title)
 - [ ] Page title is assignment title
 - [ ] Meta description is assignment description excerpt
+- [ ] Network/API error shows friendly message and recovery CTA
 
 ---
 

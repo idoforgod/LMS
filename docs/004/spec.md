@@ -1,118 +1,48 @@
-# Use Case Specification: Assignment Detail View (Learner)
+# Use Case: 과제 상세 열람 (Learner)
 
 ## Primary Actor
-Learner (authenticated user with `role=learner`)
+- 학습자(Learner)
 
-## Preconditions
-- User is authenticated and has `role=learner`
-- User is enrolled in at least one course
-- At least one assignment exists in the enrolled course
+## Precondition (사용자 관점)
+- 로그인 상태이며 역할이 Learner이다.
+- 해당 코스에 수강 등록되어 있다.
 
 ## Trigger
-User navigates to assignment list from enrolled course and clicks on an assignment
+- 내 코스 → 과제 목록에서 특정 과제를 클릭한다.
 
 ## Main Scenario
+1. 사용자는 내 코스에서 코스를 선택한다.
+2. 시스템은 코스의 과제 목록을 표시한다.
+3. 사용자는 과제 상세를 클릭한다.
+4. 시스템은 수강 등록 여부를 확인한다.
+5. 시스템은 과제 상태가 `published`인지 확인한다.
+6. 시스템은 과제 정보(제목/설명, 마감일, 점수 비중, 지각/재제출 정책)를 조회하여 표시한다.
+7. 시스템은 제출 UI(텍스트 필수, 링크 선택)를 함께 표시한다.
+8. 시스템은 기존 제출물이 있으면 상태/점수/피드백을 함께 표시한다.
+9. 시스템은 상태/정책/마감 기준으로 제출 버튼 활성/비활성 및 경고 문구를 결정한다.
 
-### 1. Navigate to Assignment
-1. User accesses "My Courses" page
-2. User selects an enrolled course
-3. System displays assignment list for the course
-4. User clicks on an assignment to view details
-
-### 2. View Assignment Details
-1. System validates user enrollment in the course
-2. System checks assignment status is `published`
-3. System retrieves assignment information:
-   - Title and description
-   - Due date and time
-   - Score weight (percentage of total course grade)
-   - Late submission policy (allow_late)
-   - Resubmission policy (allow_resubmission)
-4. System displays assignment details
-5. System shows submission UI (text field + optional link field)
-
-### 3. Check Submission Status
-1. System checks if user has existing submission
-2. If submission exists:
-   - Display submission content and link
-   - Display submission status (submitted/graded/resubmission_required)
-   - Display whether submission was late
-   - If graded, display score and feedback
-3. If no submission exists:
-   - Display empty submission form
-
-### 4. Determine Submit Button State
-1. If assignment status is `closed`:
-   - Disable submit button
-   - Display "Assignment closed" message
-2. If assignment status is `published` and due date not passed:
-   - Enable submit button
-3. If due date passed:
-   - If `allow_late = true`: Enable submit button with "Late submission" warning
-   - If `allow_late = false`: Disable submit button with "Deadline passed" message
-
-## Edge Cases
-
-### Assignment Not Found
-- **Condition**: Assignment ID does not exist
-- **Response**: Display "Assignment not found" error, redirect to course page
-
-### Assignment Not Published
-- **Condition**: Assignment status is `draft`
-- **Response**: Display "This assignment is not available yet"
-
-### Not Enrolled in Course
-- **Condition**: User is not enrolled in the course that owns this assignment
-- **Response**: Display "You must be enrolled in this course to view this assignment", redirect to course catalog
-
-### Assignment Closed
-- **Condition**: Assignment status is `closed`
-- **Response**: Display assignment details but disable submission, show "This assignment is closed"
-
-### Network Errors
-- **Condition**: API request fails
-- **Response**: Display "Failed to load assignment details. Please try again."
-
-### Unauthorized Access
-- **Condition**: User is not authenticated or not a learner
-- **Response**: Redirect to login page or display "Access denied"
+## Edge Cases (간략 처리)
+- 과제를 찾을 수 없음: "존재하지 않는 과제" 안내 후 코스 페이지로 복귀.
+- 미게시(draft) 과제: "아직 열람 불가" 안내.
+- 미수강 코스: "수강 등록 필요" 안내 후 카탈로그로 유도.
+- 마감/종료(closed): 상세는 보이되 제출 비활성 및 안내.
+- 인증/권한 오류: 로그인 또는 접근 권한 안내.
+- 네트워크/서버 오류: "불러오기 실패" 재시도 안내.
 
 ## Business Rules
-
-### BR-001: Assignment Visibility
-Only assignments with `status=published` can be viewed by learners. Draft assignments are hidden.
-
-### BR-002: Enrollment Validation
-Learners can only view assignments from courses they are enrolled in.
-
-### BR-003: Submission Window
-- Before due date: Submission allowed
-- After due date with `allow_late=true`: Late submission allowed with `is_late=true` flag
-- After due date with `allow_late=false`: Submission blocked
-- Assignment status `closed`: Submission blocked regardless of due date
-
-### BR-004: Resubmission Policy
-- If `allow_resubmission=true`: Learner can update submission before deadline
-- If `allow_resubmission=false`: Once submitted, cannot be modified
-- If status is `resubmission_required`: Learner can resubmit regardless of policy
-
-### BR-005: Assignment Information Display
-Display must include:
-- Assignment title and description (required)
-- Due date in learner's timezone (required)
-- Score weight as percentage (required)
-- Late submission policy indicator (required)
-- Resubmission policy indicator (required)
-
-### BR-006: Submission Status Display
-If submission exists, display:
-- Submission content and link
-- Submission timestamp
-- Late submission indicator (if applicable)
-- Current status (submitted/graded/resubmission_required)
-- Score and feedback (if graded)
-
----
+- BR-001 가시성: `status=published`인 과제만 Learner에게 노출/열람 가능.
+- BR-002 수강 검증: 수강 등록된 코스의 과제만 열람 가능.
+- BR-003 제출 창: 
+  - 마감 전: 제출 가능
+  - 마감 후 `allow_late=true`: 지각 제출 허용(`is_late=true`)
+  - 마감 후 `allow_late=false`: 제출 차단
+  - `closed`: 마감 여부와 무관하게 제출 차단
+- BR-004 재제출 정책:
+  - `allow_resubmission=true`: 마감 전 수정 가능
+  - `allow_resubmission=false`: 최초 제출 후 수정 불가
+  - `resubmission_required` 상태면 정책과 무관하게 재제출 가능
+- BR-005 표시 항목: 제목/설명, 학습자 타임존 기준 마감일, 점수 비중, 지각/재제출 정책은 필수로 표시.
+- BR-006 제출 상태 표시: 제출물 존재 시 내용/링크, 제출시각, 지각 여부, 상태(submitted/graded/resubmission_required), 점수/피드백(채점 시)을 표시.
 
 ## Sequence Diagram
 
@@ -123,54 +53,52 @@ participant FE
 participant BE
 database Database
 
-User -> FE: Navigate to enrolled course
+User -> FE: 내 코스 진입
 FE -> BE: GET /api/courses/:courseId/assignments
 BE -> Database: SELECT assignments WHERE course_id AND status='published'
-Database --> BE: Assignment list
-BE --> FE: Return assignments
-FE --> User: Display assignment list
+Database --> BE: 과제 목록
+BE --> FE: 200 OK 과제 목록
+FE --> User: 과제 목록 표시
 
-User -> FE: Click assignment
+User -> FE: 과제 상세 클릭
 FE -> BE: GET /api/assignments/:assignmentId
 BE -> Database: SELECT assignment WHERE id
-Database --> BE: Assignment data
-alt Assignment not found
+Database --> BE: 과제 데이터
+alt 과제 없음
   BE --> FE: 404 Not Found
-  FE --> User: "Assignment not found"
-else Assignment is draft
+  FE --> User: 존재하지 않는 과제 안내
+else 과제 draft
   BE --> FE: 403 Forbidden
-  FE --> User: "Assignment not available"
-else Assignment found
+  FE --> User: 아직 열람 불가 안내
+else 과제 유효
   BE -> Database: SELECT enrollment WHERE user_id AND course_id
-  Database --> BE: Enrollment status
-  alt Not enrolled
+  Database --> BE: 수강 여부
+  alt 미수강
     BE --> FE: 403 Forbidden
-    FE --> User: "Must be enrolled"
-  else Enrolled
+    FE --> User: 수강 등록 필요 안내
+  else 수강 중
     BE -> Database: SELECT submission WHERE assignment_id AND user_id
-    Database --> BE: Submission data (if exists)
+    Database --> BE: 제출물(있음/없음)
     BE --> FE: 200 OK {assignment, submission}
-    FE -> FE: Calculate button state
-    alt Assignment closed
-      FE --> User: Display with disabled submit button
-    else Due date passed and allow_late=false
-      FE --> User: Display with disabled submit button
-    else Due date passed and allow_late=true
-      FE --> User: Display with enabled submit button + warning
-    else Before due date
-      FE --> User: Display with enabled submit button
+    FE -> FE: 제출 버튼 상태 계산
+    alt closed
+      FE --> User: 제출 비활성 + 마감 안내
+    else 마감 지남 && allow_late=false
+      FE --> User: 제출 비활성 + 마감 안내
+    else 마감 지남 && allow_late=true
+      FE --> User: 제출 활성 + 지각 경고
+    else 마감 전
+      FE --> User: 제출 활성
     end
   end
 end
 
-User -> FE: View assignment details
-FE --> User: Show title, description, due date, weight, policies
-
-alt Submission exists
-  FE --> User: Show submission content, status, score (if graded)
-else No submission
-  FE --> User: Show empty submission form
+User -> FE: 상세 열람
+FE --> User: 제목/설명/마감/비중/정책 표시
+alt 제출물 존재
+  FE --> User: 내용/상태/점수/피드백 표시
+else 제출물 없음
+  FE --> User: 빈 제출 폼 표시
 end
-
 @enduml
 ```

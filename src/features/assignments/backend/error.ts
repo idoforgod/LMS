@@ -4,6 +4,7 @@ export const assignmentErrorCodes = {
   notEnrolled: 'NOT_ENROLLED_IN_COURSE',
   unauthorized: 'UNAUTHORIZED',
   databaseError: 'DATABASE_ERROR',
+  validationError: 'VALIDATION_ERROR',
 } as const;
 
 export type AssignmentServiceError =
