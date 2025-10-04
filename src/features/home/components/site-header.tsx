@@ -6,12 +6,25 @@ import { useCallback } from 'react';
 import { LogOut } from 'lucide-react';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 import { useInstructorDashboard } from '@/features/instructor-dashboard/hooks/useInstructorDashboard';
+import { useInstructorCourses } from '@/features/courses/hooks/instructor/useInstructorCourses';
+import { useDashboardSummary } from '@/features/dashboard/hooks/useDashboardSummary';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 
 export const SiteHeader = () => {
   const { user, isAuthenticated, isLoading, refresh } = useCurrentUser();
   const { data: instructorData, error: instructorError } = useInstructorDashboard({ limit: 1 });
   const isInstructor = !!instructorData && !instructorError;
+  const { data: learnerData, error: learnerError } = useDashboardSummary();
+  const isLearner = !!learnerData && !learnerError;
+  const { data: instructorCourses } = useInstructorCourses();
   const router = useRouter();
 
   const handleSignOut = useCallback(async () => {
@@ -35,15 +48,45 @@ export const SiteHeader = () => {
             <Link href="/dashboard" className="text-slate-700 hover:text-slate-900">
               대시보드
             </Link>
-            {isInstructor && (
+            {isLearner && (
               <>
+                <Link href="/dashboard" className="text-slate-700 hover:text-slate-900">
+                  내 학습
+                </Link>
+                <Link href="/dashboard" className="text-slate-700 hover:text-slate-900">
+                  성적/피드백
+                </Link>
+              </>
+            )}
+            {isInstructor && (
+              <div className="flex items-center gap-2">
                 <Link href="/instructor/dashboard" className="text-slate-700 hover:text-slate-900">
                   강사 대시보드
                 </Link>
-                <Link href="/instructor/courses" className="text-slate-700 hover:text-slate-900">
-                  코스 관리
-                </Link>
-              </>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="rounded-md border px-2 py-1 text-slate-700 hover:bg-slate-50">
+                    관리
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>강사 메뉴</DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                      <Link href="/instructor/courses">코스 관리</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {instructorCourses?.courses?.length ? (
+                      instructorCourses.courses.slice(0, 6).map((c) => (
+                        <DropdownMenuItem key={c.id} asChild>
+                          <Link href={`/instructor/courses/${c.id}/assignments`}>
+                            과제 관리: {c.title}
+                          </Link>
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
+                      <DropdownMenuItem disabled>등록된 코스가 없습니다</DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )}
           </>
         )}
