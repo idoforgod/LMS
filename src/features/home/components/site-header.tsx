@@ -19,6 +19,7 @@ import {
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCreateCourse } from '@/features/courses/hooks/instructor/useCreateCourse';
 import { useCreateAssignment } from '@/features/assignments/hooks/instructor/useCreateAssignment';
+import { apiClient, extractApiErrorMessage } from '@/lib/remote/api-client';
 
 export const SiteHeader = () => {
   const { user, isAuthenticated, isLoading, refresh } = useCurrentUser();
@@ -36,6 +38,7 @@ export const SiteHeader = () => {
   const isLearner = !!learnerData && !learnerError;
   const { data: instructorCourses } = useInstructorCourses();
   const router = useRouter();
+  const { toast } = useToast();
   // Dialog & form state
   const [openCreateCourse, setOpenCreateCourse] = useState(false);
   const [courseTitle, setCourseTitle] = useState('');
@@ -52,6 +55,7 @@ export const SiteHeader = () => {
   const [assignAllowLate, setAssignAllowLate] = useState(false);
   const [assignAllowResub, setAssignAllowResub] = useState(false);
   const assignMut = useCreateAssignment(assignCourseId ?? 0);
+  const [assignPublishNow, setAssignPublishNow] = useState(false);
 
   const handleSignOut = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
@@ -110,9 +114,9 @@ export const SiteHeader = () => {
                     <DropdownMenuItem asChild>
                       <Link href="/instructor/courses">코스 관리</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setOpenCreateCourse(true); }}>
-                      <Plus className="mr-2 h-3.5 w-3.5" /> 새 코스 만들기
-                    </DropdownMenuItem>
+            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setOpenCreateCourse(true); }}>
+              <Plus className="mr-2 h-3.5 w-3.5" /> 새 코스 만들기
+            </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>과제 관리</DropdownMenuLabel>
                     <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setOpenCreateAssignment(true); }}>
@@ -194,10 +198,13 @@ export const SiteHeader = () => {
                 if (!courseTitle.trim()) return;
                 try {
                   await courseMut.mutateAsync({ title: courseTitle.trim(), description: courseDesc || undefined });
+                  toast({ title: '코스 생성 완료', description: courseTitle.trim() });
                   setCourseTitle('');
                   setCourseDesc('');
                   setOpenCreateCourse(false);
-                } catch {}
+                } catch (e: any) {
+                  toast({ title: '코스 생성 실패', description: e?.message ?? '오류가 발생했습니다.', variant: 'destructive' });
+                }
               }}
               disabled={courseMut.isPending || !courseTitle.trim()}
             >
@@ -257,6 +264,9 @@ export const SiteHeader = () => {
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={assignAllowResub} onChange={(e) => setAssignAllowResub(e.target.checked)} /> 재제출 허용
               </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={assignPublishNow} onChange={(e) => setAssignPublishNow(e.target.checked)} /> 생성 후 게시
+              </label>
             </div>
           </div>
           <DialogFooter>
@@ -265,7 +275,7 @@ export const SiteHeader = () => {
               onClick={async () => {
                 if (!assignCourseId || !assignTitle.trim()) return;
                 try {
-                  await assignMut.mutateAsync({
+                  const created = await assignMut.mutateAsync({
                     title: assignTitle.trim(),
                     description: undefined,
                     dueDate: assignDue,
@@ -273,13 +283,29 @@ export const SiteHeader = () => {
                     allowLate: assignAllowLate,
                     allowResubmission: assignAllowResub,
                   });
+                  toast({ title: '과제 생성 완료', description: assignTitle.trim() });
+                  if (assignPublishNow && assignCourseId && created?.id) {
+                    try {
+                      let headers: Record<string, string> | undefined;
+                      if (typeof window !== 'undefined') {
+                        const token = localStorage.getItem('auth_token');
+                        if (token) headers = { Authorization: `Bearer ${token}` };
+                      }
+                      await apiClient.patch(`/api/instructor/assignments/${created.id}/status`, { to: 'published' }, { headers });
+                      toast({ title: '과제 게시 완료', description: assignTitle.trim() });
+                    } catch (e: any) {
+                      toast({ title: '과제 게시 실패', description: extractApiErrorMessage(e, '오류가 발생했습니다.'), variant: 'destructive' });
+                    }
+                  }
                   setAssignTitle('');
                   setAssignDue(new Date().toISOString());
                   setAssignWeight(0);
                   setAssignAllowLate(false);
                   setAssignAllowResub(false);
                   setOpenCreateAssignment(false);
-                } catch {}
+                } catch (e: any) {
+                  toast({ title: '과제 생성 실패', description: e?.message ?? '오류가 발생했습니다.', variant: 'destructive' });
+                }
               }}
               disabled={assignMut.isPending || !assignCourseId || !assignTitle.trim()}
             >

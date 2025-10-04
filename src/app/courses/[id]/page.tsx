@@ -1,11 +1,13 @@
 'use client';
 
 import { use } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CourseDetail } from '@/features/courses/components/course-detail';
 import { useCourseDetail } from '@/features/courses/hooks/useCourseDetail';
+import { recordCourseVisit } from '@/features/home/hooks/useLastActivity';
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
 
 type CourseDetailPageProps = {
@@ -18,6 +20,12 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const courseId = parseInt(resolvedParams.id, 10);
 
   const { data: course, isLoading, error } = useCourseDetail(courseId);
+
+  useEffect(() => {
+    if (course) {
+      recordCourseVisit(course.id, course.title);
+    }
+  }, [course]);
   const { isAuthenticated } = useCurrentUser();
 
   // TODO: Get user role from profile

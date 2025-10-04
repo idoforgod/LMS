@@ -1,12 +1,13 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AssignmentDetailComponent } from '@/features/assignments/components/assignment-detail';
 import { useAssignmentDetail } from '@/features/assignments/hooks/useAssignmentDetail';
 import { Skeleton } from '@/components/ui/skeleton';
+import { recordCourseVisit } from '@/features/home/hooks/useLastActivity';
 
 type AssignmentDetailPageProps = {
   params: Promise<{ courseId: string; assignmentId: string }>;
@@ -19,6 +20,13 @@ export default function AssignmentDetailPage({ params }: AssignmentDetailPagePro
   const assignmentId = parseInt(resolvedParams.assignmentId, 10);
 
   const { data: assignment, isLoading, error } = useAssignmentDetail(assignmentId);
+
+  useEffect(() => {
+    if (courseId) {
+      // 제목은 과제 제목으로 대체(옵션)
+      recordCourseVisit(courseId, assignment?.title ?? undefined);
+    }
+  }, [courseId, assignment?.title]);
 
   if (isLoading) {
     return (
