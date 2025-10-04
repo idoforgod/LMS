@@ -17,7 +17,7 @@ import {
 } from './error';
 
 export const registerOnboardingRoutes = (app: Hono<AppEnv>) => {
-  app.post('/auth/signup', async (c) => {
+  app.post('/api/auth/signup', async (c) => {
     const body = await c.req.json();
     const parsedBody = SignupRequestSchema.safeParse(body);
 

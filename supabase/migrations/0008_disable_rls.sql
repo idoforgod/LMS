@@ -1,0 +1,15 @@
+-- Migration: Disable Row Level Security (RLS) on all tables
+-- Created: 2025-10-04
+-- Note: Following project guidelines to disable RLS for all tables
+
+-- Disable RLS on all tables
+ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE courses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE enrollments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE assignments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE submissions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE grades DISABLE ROW LEVEL SECURITY;
+ALTER TABLE reports DISABLE ROW LEVEL SECURITY;
+ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE difficulties DISABLE ROW LEVEL SECURITY;
+ALTER TABLE terms_agreements DISABLE ROW LEVEL SECURITY;

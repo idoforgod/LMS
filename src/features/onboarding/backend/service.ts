@@ -26,7 +26,10 @@ export const createUserAccount = async (
     });
 
   if (authError) {
-    if (authError.message.includes('already registered')) {
+    if (
+      authError.message.includes('already registered') ||
+      authError.message.includes('already been registered')
+    ) {
       return failure(
         409,
         onboardingErrorCodes.emailDuplicate,
