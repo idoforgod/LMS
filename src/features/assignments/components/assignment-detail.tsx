@@ -11,6 +11,10 @@ import type { AssignmentDetail } from '@/features/assignments/lib/dto';
 import { formatDueDate, getTimeUntilDue } from '@/lib/date-utils';
 import { calculateSubmissionState } from '@/lib/submission-state';
 import { SubmissionStatus } from './submission-status';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useSubmitAssignment, useUpdateSubmission } from '@/features/submissions/hooks/useSubmitAssignment';
 
 type AssignmentDetailProps = {
   assignment: AssignmentDetail;
@@ -33,6 +37,49 @@ export const AssignmentDetailComponent = ({ assignment }: AssignmentDetailProps)
     if (submissionState.variant === 'warning') return 'destructive';
     return 'default';
   };
+
+  const FormSchema = z.object({
+    content: z.string().min(1, 'Content is required'),
+    link: z
+      .union([z.string().url('Invalid URL'), z.literal('')])
+      .optional()
+      .transform((v) => (v === '' ? undefined : v)),
+  });
+
+  const defaultValues = {
+    content: assignment.submission?.content ?? '',
+    link: assignment.submission?.link ?? '',
+  };
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema),
+    defaultValues,
+  });
+
+  const submitMutation = useSubmitAssignment(assignment.id);
+  const updateMutation = useUpdateSubmission(assignment.id);
+  const isMutating = submitMutation.isPending || updateMutation.isPending;
+
+  const onSubmit = handleSubmit(async (values) => {
+    try {
+      if (assignment.submission) {
+        await updateMutation.mutateAsync(values);
+      } else {
+        await submitMutation.mutateAsync(values);
+      }
+      reset({
+        content: values.content,
+        link: values.link ?? '',
+      });
+    } catch {
+      // handled by error state
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -115,16 +162,19 @@ export const AssignmentDetailComponent = ({ assignment }: AssignmentDetailProps)
             </Alert>
           )}
 
-          <div className="space-y-4">
+          <form className="space-y-4" onSubmit={onSubmit}>
             <div>
               <Label htmlFor="content">Content *</Label>
               <Textarea
                 id="content"
                 placeholder="Enter your assignment submission here..."
-                disabled={!submissionState.canSubmit}
-                defaultValue={assignment.submission?.content || ''}
+                disabled={!submissionState.canSubmit || isMutating}
                 rows={8}
+                {...register('content')}
               />
+              {errors.content && (
+                <p className="mt-1 text-xs text-red-600">{errors.content.message}</p>
+              )}
             </div>
 
             <div>
@@ -133,20 +183,41 @@ export const AssignmentDetailComponent = ({ assignment }: AssignmentDetailProps)
                 id="link"
                 type="url"
                 placeholder="https://..."
-                disabled={!submissionState.canSubmit}
-                defaultValue={assignment.submission?.link || ''}
+                disabled={!submissionState.canSubmit || isMutating}
+                {...register('link')}
               />
+              {errors.link && (
+                <p className="mt-1 text-xs text-red-600">{errors.link.message as string}</p>
+              )}
             </div>
 
+            {(submitMutation.isError || updateMutation.isError) && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {(submitMutation.error?.message || updateMutation.error?.message) ?? '제출에 실패했습니다.'}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {(submitMutation.isSuccess || updateMutation.isSuccess) && (
+              <Alert>
+                <AlertDescription>저장이 완료되었습니다.</AlertDescription>
+              </Alert>
+            )}
+
             <Button
-              type="button"
+              type="submit"
               variant={getButtonVariant()}
-              disabled={!submissionState.canSubmit}
+              disabled={!submissionState.canSubmit || isMutating}
               className="w-full"
             >
-              {assignment.submission ? 'Update Submission' : 'Submit Assignment'}
+              {isMutating
+                ? 'Processing...'
+                : assignment.submission
+                ? 'Update Submission'
+                : 'Submit Assignment'}
             </Button>
-          </div>
+          </form>
         </CardContent>
       </Card>
     </div>
