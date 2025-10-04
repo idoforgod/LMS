@@ -100,7 +100,6 @@ participant FE
 participant BE
 database Database
 
-== Browse Courses ==
 User -> FE: Access course catalog
 FE -> BE: GET /api/courses?status=published
 BE -> Database: SELECT * FROM courses WHERE status='published'
@@ -108,7 +107,6 @@ Database --> BE: Course list
 BE --> FE: Return course list
 FE --> User: Display courses
 
-== Apply Filters ==
 User -> FE: Apply filters (category, difficulty, search)
 FE -> BE: GET /api/courses?category=X&difficulty=Y&search=Z
 BE -> Database: SELECT with filters
@@ -116,7 +114,6 @@ Database --> BE: Filtered courses
 BE --> FE: Return filtered list
 FE --> User: Display filtered results
 
-== View Course Details ==
 User -> FE: Click course
 FE -> BE: GET /api/courses/:id
 BE -> Database: SELECT course details
@@ -124,7 +121,6 @@ Database --> BE: Course data
 BE --> FE: Return course details
 FE --> User: Display course info
 
-== Enroll in Course ==
 User -> FE: Click "수강신청"
 FE -> BE: POST /api/enrollments {courseId}
 BE -> BE: Validate authentication & role
@@ -147,7 +143,6 @@ else Already enrolled
   FE --> User: "Already enrolled"
 end
 
-== Cancel Enrollment ==
 User -> FE: Click "수강취소"
 FE -> BE: DELETE /api/enrollments/:id
 BE -> BE: Validate authentication & ownership
