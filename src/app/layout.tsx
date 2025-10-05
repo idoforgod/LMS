@@ -3,6 +3,8 @@ import "./globals.css";
 import Providers from "./providers";
 import { loadCurrentUser } from "@/features/auth/server/load-current-user";
 import { CurrentUserProvider } from "@/features/auth/context/current-user-context";
+import { SiteHeader } from "@/features/home/components/site-header";
+import { SiteFooter } from "@/features/home/components/site-footer";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -21,7 +23,9 @@ export default async function RootLayout({
       <body className="antialiased font-sans">
         <Providers>
           <CurrentUserProvider initialState={currentUser}>
+            <SiteHeader />
             {children}
+            <SiteFooter />
           </CurrentUserProvider>
         </Providers>
       </body>
